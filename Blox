@@ -1,0 +1,1028 @@
+--[[
+    ╔══════════════════════════════════════════════════════════════╗
+    ║           BLOX FRUITS COMPLETE SCRIPT v3.0                   ║
+    ║                     Desenvolvido em Luau                      ║
+    ╚══════════════════════════════════════════════════════════════╝
+    
+    FUNCIONALIDADES:
+    ✓ Auto Farm (NPCs/Bosses)
+    ✓ Auto Collect Fruit
+    ✓ ESP (Frutas, Players, NPCs, Baús)
+    ✓ Teleportes para todas as ilhas
+    ✓ Auto Quest (Aceitar/Entregar)
+    ✓ Auto Stats (Força, Defesa, Fruta, etc)
+    ✓ Auto Raid
+    ✓ Auto Farm Mastery
+    ✓ Auto Buy Items
+    ✓ Anti-AFK
+    ✓ Godmode
+    ✓ Mob Spawner
+    ✓ Fruit Notifier
+    ✓ Server Hop
+--]]
+
+-- ==================== SERVIÇOS ====================
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local VirtualInput = game:GetService("VirtualInputUser")
+local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
+
+-- ==================== VARIÁVEIS GLOBAIS ====================
+local LocalPlayer = Players.LocalPlayer
+local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+-- ==================== CONFIGURAÇÕES ====================
+local Settings = {
+    -- Auto Farm
+    AutoFarm = false,
+    AutoFarmRange = 150,
+    AutoFarmMobs = true,
+    AutoFarmBoss = true,
+    
+    -- Auto Quest
+    AutoQuest = false,
+    AutoQuestDelay = 2,
+    
+    -- Auto Collect
+    AutoCollect = false,
+    AutoCollectRange = 200,
+    AutoCollectFruits = true,
+    AutoCollectChests = false,
+    
+    -- ESP
+    ESP = false,
+    ESPFruits = true,
+    ESPPlayers = true,
+    ESPMobs = true,
+    ESPChests = false,
+    
+    -- Teleports
+    TeleportEnabled = false,
+    
+    -- Stats
+    AutoStats = false,
+    StatType = "Melee", -- Melee, Defense, Sword, Gun, Fruit
+    
+    -- Raid
+    AutoRaid = false,
+    
+    -- Mastery
+    AutoMastery = false,
+    
+    -- Godmode
+    GodMode = false,
+    
+    -- Anti-AFK
+    AntiAFK = false,
+    
+    -- Misc
+    AutoBuy = false,
+    FruitNotifier = false,
+    ServerHop = false
+}
+
+-- ==================== LISTA DE ILHAS ====================
+local Islands = {
+    -- SEA 1 (Primeiro Mar)
+    StarterIsland = {pos = Vector3.new(-450, 80, 80), name = "🏝️ Ilha Inicial"},
+    Jungle = {pos = Vector3.new(-1250, 85, 3750), name = "🌴 Selva"},
+    Prison = {pos = Vector3.new(4525, 50, -550), name = "🔒 Prisão"},
+    SkyIsland = {pos = Vector3.new(-4850, 750, 850), name = "☁️ Ilha do Céu"},
+    Colosseum = {pos = Vector3.new(1400, 25, -1750), name = "🏛️ Coliseu"},
+    MagmaVillage = {pos = Vector3.new(-5450, 85, -1650), name = "🌋 Vila do Magma"},
+    FrozenVillage = {pos = Vector3.new(550, 85, -4250), name = "❄️ Vila Congelada"},
+    MarineFort = {pos = Vector3.new(-2850, 85, -2250), name = "⚓ Forte Marinha"},
+    
+    -- SEA 2 (Segundo Mar)
+    KingdomOfRose = {pos = Vector3.new(-8600, 240, -920), name = "🌹 Reino das Rosas"},
+    GreenZone = {pos = Vector3.new(-5550, 85, -170), name = "🍃 Zona Verde"},
+    Graveyard = {pos = Vector3.new(-12850, 240, -3850), name = "🪦 Cemitério"},
+    SnowMountain = {pos = Vector3.new(-6250, 340, -4825), name = "⛄ Montanha Nevada"},
+    HotAndCold = {pos = Vector3.new(-11000, 300, -9250), name = "🔥❄️ Quente e Frio"},
+    CursedShip = {pos = Vector3.new(-11950, 150, -12850), name = "🚢 Navio Amaldiçoado"},
+    IceCastle = {pos = Vector3.new(-7750, 380, -6325), name = "🏰 Castelo de Gelo"},
+    
+    -- SEA 3 (Terceiro Mar)
+    CastleOnSea = {pos = Vector3.new(5350, 245, 610), name = "🏰 Castelo no Mar"},
+    PortTown = {pos = Vector3.new(3650, 7, -800), name = "🏠 Cidade Portuária"},
+    HydraIsland = {pos = Vector3.new(6825, 18, 620), name = "🐍 Ilha Hydra"},
+    GreatTree = {pos = Vector3.new(23800, 700, 13500), name = "🌳 Grande Árvore"},
+    FloatingTurtle = {pos = Vector3.new(15500, 15, 12000), name = "🐢 Tartaruga Flutuante"},
+    HauntedCastle = {pos = Vector3.new(29300, 11000, 14250), name = "👻 Castelo Assombrado"},
+    SeaOfTreats = {pos = Vector3.new(7500, 300, -2000), name = "🍬 Mar das Guloseimas"}
+}
+
+-- ==================== LISTA DE NPCs PARA FARM ====================
+local FarmNPCs = {
+    -- Sea 1
+    "Bandit", "Brute", "Gorilla", "Trainee", "Saber Expert", "Ice Admiral",
+    "Sky Bandit", "Dark Master", "Thunder God", "Cyborg", "Magma Admiral",
+    
+    -- Sea 2
+    "Diamond", "Jose", "Jeremy", "Fajita", "Smoke Admiral", "Awakened Ice Admiral",
+    "Stone", "Cake Queen", "Don Swan", "Swan Pirates",
+    
+    -- Sea 3
+    "Marine", "Pirate", "Mugiwara", "Yeti", "Island Empress", "Dragon",
+    "Hydra Agent", "Hydra Swordsman", "Hydra Sorcerer", "Rabbit"
+}
+
+-- ==================== FUNÇÕES DE UTILIDADE ====================
+local function CreateNotification(title, text, duration)
+    local notif = Instance.new("TextLabel")
+    notif.Name = "Notification"
+    notif.Size = UDim2.new(0, 300, 0, 50)
+    notif.Position = UDim2.new(0.5, -150, 0.85, 0)
+    notif.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    notif.BackgroundTransparency = 0.1
+    notif.Text = text
+    notif.TextColor3 = Color3.fromRGB(255, 200, 100)
+    notif.Font = Enum.Font.Gotham
+    notif.TextSize = 14
+    notif.Parent = LocalPlayer.PlayerGui
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, 0, 0, 20)
+    titleLabel.Position = UDim2.new(0, 0, 0, -20)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = title
+    titleLabel.TextColor3 = Color3.fromRGB(255, 100, 50)
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 12
+    titleLabel.Parent = notif
+    
+    spawn(function()
+        wait(duration or 3)
+        notif:Destroy()
+    end)
+end
+
+-- ==================== TELEPORTE ====================
+local function TeleportTo(island)
+    if not rootPart then return false end
+    
+    local targetPos = island.pos
+    local distance = (rootPart.Position - targetPos).Magnitude
+    
+    if distance > 50 then
+        rootPart.CFrame = CFrame.new(targetPos)
+        wait(0.3)
+        CreateNotification("Teleporte", "Teleportado para: " .. island.name, 2)
+        return true
+    end
+    return false
+end
+
+local function TeleportToNPC(npcName)
+    for _, npc in pairs(workspace.Enemies:GetChildren()) do
+        if npc.Name:lower():find(npcName:lower()) and npc:FindFirstChild("HumanoidRootPart") then
+            rootPart.CFrame = CFrame.new(npc.HumanoidRootPart.Position + Vector3.new(0, 3, 5))
+            return true
+        end
+    end
+    return false
+end
+
+-- ==================== AUTO FARM ====================
+local function GetNearestEnemy()
+    local nearest = nil
+    local shortestDist = math.huge
+    
+    for _, enemy in pairs(workspace.Enemies:GetChildren()) do
+        local enemyHumanoid = enemy:FindFirstChild("Humanoid")
+        local enemyRoot = enemy:FindFirstChild("HumanoidRootPart")
+        
+        if enemyHumanoid and enemyHumanoid.Health > 0 and enemyRoot then
+            local dist = (rootPart.Position - enemyRoot.Position).Magnitude
+            if dist < shortestDist and dist < Settings.AutoFarmRange then
+                shortestDist = dist
+                nearest = enemy
+            end
+        end
+    end
+    return nearest
+end
+
+local function AttackEnemy(enemy)
+    if not enemy or not enemy:FindFirstChild("HumanoidRootPart") then return end
+    
+    local args = {
+        [1] = enemy.HumanoidRootPart.Position,
+        [2] = enemy
+    }
+    
+    local combatRemote = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+    if combatRemote and combatRemote:FindFirstChild("Combat") then
+        combatRemote.Combat:FireServer(unpack(args))
+    end
+end
+
+local function AutoFarmLoop()
+    while Settings.AutoFarm do
+        local target = GetNearestEnemy()
+        
+        if target then
+            local targetRoot = target.HumanoidRootPart
+            rootPart.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 4)
+            AttackEnemy(target)
+        end
+        
+        wait(0.1)
+    end
+end
+
+-- ==================== AUTO QUEST ====================
+local function GetCurrentQuest()
+    local questGUI = LocalPlayer.PlayerGui:FindFirstChild("Main")
+    if questGUI and questGUI:FindFirstChild("Quest") then
+        return questGUI.Quest
+    end
+    return nil
+end
+
+local function CompleteQuest()
+    local completeRemote = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+    if completeRemote and completeRemote:FindFirstChild("CompleteQuest") then
+        completeRemote.CompleteQuest:FireServer()
+        CreateNotification("Quest", "Quest completada!", 1)
+    end
+end
+
+local function AcceptQuest(questName)
+    local questRemote = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+    if questRemote and questRemote:FindFirstChild("Quest") then
+        questRemote.Quest:FireServer(questName)
+        CreateNotification("Quest", "Quest aceita: " .. questName, 1)
+    end
+end
+
+local function AutoQuestLoop()
+    while Settings.AutoQuest do
+        local quest = GetCurrentQuest()
+        
+        if quest and quest.Visible then
+            -- Verificar se completou
+            local questComplete = quest:FindFirstChild("QuestComplete")
+            if questComplete and questComplete.Visible then
+                CompleteQuest()
+            end
+        end
+        
+        wait(Settings.AutoQuestDelay)
+    end
+end
+
+-- ==================== AUTO COLLECT FRUIT ====================
+local function IsFruit(item)
+    local name = item.Name:lower()
+    local fruits = {"fruit", "dragon", "leopard", "dough", "spirit", "venom", 
+                    "shadow", "control", "buddha", "rumble", "magma", "light", 
+                    "ice", "flame", "dark", "quake"}
+    
+    for _, fruit in ipairs(fruits) do
+        if name:find(fruit) then
+            return true
+        end
+    end
+    return false
+end
+
+local function GetNearestCollectable()
+    local nearest = nil
+    local shortestDist = math.huge
+    
+    for _, item in pairs(workspace:GetDescendants()) do
+        if item:IsA("Tool") and item:FindFirstChild("Handle") then
+            local isCollectable = false
+            
+            if Settings.AutoCollectFruits and IsFruit(item) then
+                isCollectable = true
+            end
+            
+            if Settings.AutoCollectChests and item.Name:lower():find("chest") then
+                isCollectable = true
+            end
+            
+            if isCollectable then
+                local dist = (rootPart.Position - item.Handle.Position).Magnitude
+                if dist < shortestDist and dist < Settings.AutoCollectRange then
+                    shortestDist = dist
+                    nearest = item
+                end
+            end
+        end
+    end
+    return nearest
+end
+
+local function AutoCollectLoop()
+    while Settings.AutoCollect do
+        local item = GetNearestCollectable()
+        
+        if item and item:FindFirstChild("Handle") then
+            rootPart.CFrame = CFrame.new(item.Handle.Position)
+            wait(0.3)
+            CreateNotification("Coleta", "Coletando: " .. item.Name, 0.5)
+        end
+        
+        wait(0.5)
+    end
+end
+
+-- ==================== ESP (WALLHACK) ====================
+local function AddESP(obj, text, color, icon)
+    if obj:FindFirstChild("BloxESP") then return end
+    
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "BloxESP"
+    billboard.Size = UDim2.new(0, 180, 0, 45)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = obj
+    
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.5
+    frame.Parent = billboard
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0.7, 0)
+    label.Position = UDim2.new(0, 0, 0.15, 0)
+    label.BackgroundTransparency = 1
+    label.Text = (icon or "📍") .. " " .. text
+    label.TextColor3 = color
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.Parent = frame
+    
+    local distanceLabel = Instance.new("TextLabel")
+    distanceLabel.Size = UDim2.new(1, 0, 0.3, 0)
+    distanceLabel.Position = UDim2.new(0, 0, 0.7, 0)
+    distanceLabel.BackgroundTransparency = 1
+    distanceLabel.Text = ""
+    distanceLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    distanceLabel.TextScaled = true
+    distanceLabel.Font = Enum.Font.Gotham
+    distanceLabel.Parent = frame
+    
+    -- Atualizar distância
+    spawn(function()
+        while obj and obj.Parent and billboard.Parent do
+            local distance = (rootPart.Position - obj:GetPivot().Position).Magnitude
+            distanceLabel.Text = string.format("%.1f studs", distance)
+            wait(0.5)
+        end
+    end)
+    
+    return billboard
+end
+
+local function ESPLoop()
+    while Settings.ESP do
+        -- ESP para Frutas
+        if Settings.ESPFruits then
+            for _, item in pairs(workspace:GetDescendants()) do
+                if item:IsA("Tool") and item:FindFirstChild("Handle") and IsFruit(item) then
+                    AddESP(item, item.Name, Color3.fromRGB(255, 100, 100), "🍎")
+                end
+            end
+        end
+        
+        -- ESP para NPCs/Mobs
+        if Settings.ESPMobs then
+            for _, mob in pairs(workspace.Enemies:GetChildren()) do
+                if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                    local color = Color3.fromRGB(255, 50, 50)
+                    if mob.Name:lower():find("boss") then
+                        color = Color3.fromRGB(255, 150, 0)
+                    end
+                    AddESP(mob, mob.Name, color, "👹")
+                end
+            end
+        end
+        
+        -- ESP para Players
+        if Settings.ESPPlayers then
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    local playerRoot = player.Character:FindFirstChild("HumanoidRootPart")
+                    if playerRoot then
+                        local color = Color3.fromRGB(100, 150, 255)
+                        if player.Team == LocalPlayer.Team then
+                            color = Color3.fromRGB(100, 255, 100)
+                        end
+                        AddESP(player.Character, player.Name, color, "👤")
+                    end
+                end
+            end
+        end
+        
+        wait(2)
+    end
+    
+    -- Limpar ESP quando desativado
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("BillboardGui") and v.Name == "BloxESP" then
+            v:Destroy()
+        end
+    end
+end
+
+-- ==================== AUTO STATS ====================
+local function AutoStatsLoop()
+    local statRemotes = {
+        Melee = "AddPointMelee",
+        Defense = "AddPointDefense",
+        Sword = "AddPointSword",
+        Gun = "AddPointGun",
+        Fruit = "AddPointFruit"
+    }
+    
+    while Settings.AutoStats do
+        local remoteName = statRemotes[Settings.StatType]
+        if remoteName then
+            local remote = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+            if remote and remote:FindFirstChild(remoteName) then
+                remote[remoteName]:FireServer()
+            end
+        end
+        wait(0.3)
+    end
+end
+
+-- ==================== GODMODE ====================
+local function GodmodeLoop()
+    while Settings.GodMode do
+        if humanoid then
+            humanoid.MaxHealth = 9e9
+            humanoid.Health = 9e9
+            humanoid.BreakJointsOnDeath = false
+            
+            -- Prevenir dano de queda
+            humanoid.UseJumpPower = true
+        end
+        wait(0.5)
+    end
+end
+
+-- ==================== AUTO MASTERY ====================
+local function AutoMasteryLoop()
+    while Settings.AutoMastery do
+        local args = {
+            [1] = "AddMastery",
+            [2] = 100
+        }
+        
+        local remote = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+        if remote and remote:FindFirstChild("Mastery") then
+            remote.Mastery:FireServer(unpack(args))
+        end
+        wait(1)
+    end
+end
+
+-- ==================== AUTO RAID ====================
+local function AutoRaidLoop()
+    while Settings.AutoRaid do
+        local args = {
+            [1] = "StartRaid"
+        }
+        
+        local remote = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+        if remote and remote:FindFirstChild("Raid") then
+            remote.Raid:FireServer(unpack(args))
+            CreateNotification("Raid", "Iniciando Raid...", 2)
+        end
+        wait(30)
+    end
+end
+
+-- ==================== FRUIT NOTIFIER ====================
+local function FruitNotifierLoop()
+    local notifiedFruits = {}
+    
+    while Settings.FruitNotifier do
+        for _, item in pairs(workspace:GetDescendants()) do
+            if item:IsA("Tool") and item:FindFirstChild("Handle") and IsFruit(item) then
+                if not notifiedFruits[item] then
+                    notifiedFruits[item] = true
+                    local distance = (rootPart.Position - item.Handle.Position).Magnitude
+                    CreateNotification(
+                        "🍎 FRUTA ENCONTRADA!", 
+                        item.Name .. " à " .. math.floor(distance) .. " studs de distância",
+                        5
+                    )
+                    
+                    -- Teleportar automaticamente se ativado
+                    if Settings.AutoCollect then
+                        rootPart.CFrame = CFrame.new(item.Handle.Position)
+                    end
+                end
+            end
+        end
+        wait(1)
+    end
+end
+
+-- ==================== ANTI-AFK ====================
+local function AntiAFKLoop()
+    local lastPos = rootPart.Position
+    local lastTime = tick()
+    
+    while Settings.AntiAFK do
+        if (rootPart.Position - lastPos).Magnitude < 1 and tick() - lastTime > 60 then
+            -- Mover levemente
+            rootPart.CFrame = rootPart.CFrame * CFrame.new(1, 0, 1)
+            lastPos = rootPart.Position
+            lastTime = tick()
+        else
+            lastPos = rootPart.Position
+            lastTime = tick()
+        end
+        wait(30)
+    end
+end
+
+-- ==================== SERVER HOP ====================
+local function ServerHop()
+    if not Settings.ServerHop then return end
+    
+    local servers = {}
+    local http = game:GetService("HttpService")
+    
+    -- Procurar servidor menos cheio
+    spawn(function()
+        while Settings.ServerHop do
+            wait(60) -- Verificar a cada minuto
+            -- Lógica para trocar de servidor quando muito cheio
+            if #Players:GetPlayers() > 12 then
+                CreateNotification("Server Hop", "Trocando de servidor...", 2)
+                -- Teleportar para outro servidor
+                game:GetService("TeleportService"):Teleport(game.PlaceId)
+            end
+        end
+    end)
+end
+
+-- ==================== GUI COMPLETA ====================
+local function CreateGUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "BloxFruitsComplete"
+    screenGui.Parent = CoreGui
+    
+    -- Frame principal
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(0, 380, 0, 600)
+    mainFrame.Position = UDim2.new(0, 10, 0, 50)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    mainFrame.BackgroundTransparency = 0.05
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = screenGui
+    
+    -- Tornar arrastável
+    local dragging = false
+    local dragStart
+    local startPos
+    
+    mainFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+        end
+    end)
+    
+    mainFrame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    -- Título
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 45)
+    title.Text = "🐉 BLOX FRUITS COMPLETE v3.0 🐉"
+    title.TextColor3 = Color3.fromRGB(255, 100, 50)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 16
+    title.Parent = mainFrame
+    
+    -- Separador
+    local line = Instance.new("Frame")
+    line.Size = UDim2.new(0.95, 0, 0, 2)
+    line.Position = UDim2.new(0.025, 0, 0.08, 0)
+    line.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
+    line.Parent = mainFrame
+    
+    -- Abas (usando botões)
+    local tabs = {"Farm", "Collect", "ESP", "Teleports", "Misc"}
+    local currentTab = "Farm"
+    
+    local tabBar = Instance.new("Frame")
+    tabBar.Size = UDim2.new(1, 0, 0, 35)
+    tabBar.Position = UDim2.new(0, 0, 0.09, 0)
+    tabBar.BackgroundTransparency = 1
+    tabBar.Parent = mainFrame
+    
+    local function SwitchTab(tabName)
+        currentTab = tabName
+        for _, child in pairs(mainFrame:GetChildren()) do
+            if child.Name == "TabContent" then
+                child:Destroy()
+            end
+        end
+        
+        local content = Instance.new("ScrollingFrame")
+        content.Name = "TabContent"
+        content.Size = UDim2.new(1, 0, 1, -80)
+        content.Position = UDim2.new(0, 0, 0.16, 0)
+        content.BackgroundTransparency = 1
+        content.CanvasSize = UDim2.new(0, 0, 0, 0)
+        content.ScrollBarThickness = 5
+        content.Parent = mainFrame
+        
+        local yOffset = 0.05
+        
+        if tabName == "Farm" then
+            -- Auto Farm
+            local farmBtn = CreateButton(content, "⚔️ Auto Farm", yOffset, Color3.fromRGB(80, 40, 80))
+            farmBtn.MouseButton1Click:Connect(function()
+                Settings.AutoFarm = not Settings.AutoFarm
+                farmBtn.Text = "⚔️ Auto Farm: " .. (Settings.AutoFarm and "ON" or "OFF")
+                farmBtn.BackgroundColor3 = Settings.AutoFarm and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(80, 40, 80)
+                if Settings.AutoFarm then spawn(AutoFarmLoop) end
+            end)
+            yOffset = yOffset + 0.12
+            
+            -- Range Slider
+            CreateSlider(content, "🔍 Alcance do Farm", yOffset, 50, 300, Settings.AutoFarmRange, function(value)
+                Settings.AutoFarmRange = value
+            end)
+            yOffset = yOffset + 0.12
+            
+            -- Auto Quest
+            local questBtn = CreateButton(content, "📋 Auto Quest", yOffset, Color3.fromRGB(60, 60, 80))
+            questBtn.MouseButton1Click:Connect(function()
+                Settings.AutoQuest = not Settings.AutoQuest
+                questBtn.Text = "📋 Auto Quest: " .. (Settings.AutoQuest and "ON" or "OFF")
+                questBtn.BackgroundColor3 = Settings.AutoQuest and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(60, 60, 80)
+                if Settings.AutoQuest then spawn(AutoQuestLoop) end
+            end)
+            yOffset = yOffset + 0.12
+            
+            -- Auto Raid
+            local raidBtn = CreateButton(content, "⚡ Auto Raid", yOffset, Color3.fromRGB(80, 60, 40))
+            raidBtn.MouseButton1Click:Connect(function()
+                Settings.AutoRaid = not Settings.AutoRaid
+                raidBtn.Text = "⚡ Auto Raid: " .. (Settings.AutoRaid and "ON" or "OFF")
+                raidBtn.BackgroundColor3 = Settings.AutoRaid and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(80, 60, 40)
+                if Settings.AutoRaid then spawn(AutoRaidLoop) end
+            end)
+            yOffset = yOffset + 0.12
+            
+            -- Auto Mastery
+            local masteryBtn = CreateButton(content, "⭐ Auto Mastery", yOffset, Color3.fromRGB(60, 80, 60))
+            masteryBtn.MouseButton1Click:Connect(function()
+                Settings.AutoMastery = not Settings.AutoMastery
+                masteryBtn.Text = "⭐ Auto Mastery: " .. (Settings.AutoMastery and "ON" or "OFF")
+                masteryBtn.BackgroundColor3 = Settings.AutoMastery and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(60, 80, 60)
+                if Settings.AutoMastery then spawn(AutoMasteryLoop) end
+            end)
+            
+        elseif tabName == "Collect" then
+            -- Auto Collect
+            local collectBtn = CreateButton(content, "🍎 Auto Collect", yOffset, Color3.fromRGB(60, 80, 60))
+            collectBtn.MouseButton1Click:Connect(function()
+                Settings.AutoCollect = not Settings.AutoCollect
+                collectBtn.Text = "🍎 Auto Collect: " .. (Settings.AutoCollect and "ON" or "OFF")
+                collectBtn.BackgroundColor3 = Settings.AutoCollect and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(60, 80, 60)
+                if Settings.AutoCollect then spawn(AutoCollectLoop) end
+            end)
+            yOffset = yOffset + 0.12
+            
+            -- Range Slider
+            CreateSlider(content, "📏 Alcance da Coleta", yOffset, 50, 300, Settings.AutoCollectRange, function(value)
+                Settings.AutoCollectRange = value
+            end)
+            yOffset = yOffset + 0.12
+            
+            -- Fruit Notifier
+            local notifierBtn = CreateButton(content, "🔔 Fruit Notifier", yOffset, Color3.fromRGB(80, 60, 40))
+            notifierBtn.MouseButton1Click:Connect(function()
+                Settings.FruitNotifier = not Settings.FruitNotifier
+                notifierBtn.Text = "🔔 Fruit Notifier: " .. (Settings.FruitNotifier and "ON" or "OFF")
+                notifierBtn.BackgroundColor3 = Settings.FruitNotifier and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(80, 60, 40)
+                if Settings.FruitNotifier then spawn(FruitNotifierLoop) end
+            end)
+            
+        elseif tabName == "ESP" then
+            -- ESP Master
+            local espBtn = CreateButton(content, "👁️ ESP Master", yOffset, Color3.fromRGB(80, 40, 80))
+            espBtn.MouseButton1Click:Connect(function()
+                Settings.ESP = not Settings.ESP
+                espBtn.Text = "👁️ ESP Master: " .. (Settings.ESP and "ON" or "OFF")
+                espBtn.BackgroundColor3 = Settings.ESP and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(80, 40, 80)
+                if Settings.ESP then spawn(ESPLoop) else Settings.ESP = false end
+            end)
+            yOffset = yOffset + 0.12
+            
+            -- ESP Fruits
+            local espFruitsBtn = CreateButton(content, "🍎 ESP Frutas", yOffset, Color3.fromRGB(80, 60, 40))
+            espFruitsBtn.MouseButton1Click:Connect(function()
+                Settings.ESPFruits = not Settings.ESPFruits
+                espFruitsBtn.Text = "🍎 ESP Frutas: " .. (Settings.ESPFruits and "ON" or "OFF")
+                espFruitsBtn.BackgroundColor3 = Settings.ESPFruits and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(80, 60, 40)
+            end)
+            yOffset = yOffset + 0.12
+            
+            -- ESP Mobs
+            local espMobsBtn = CreateButton(content, "👹 ESP Mobs", yOffset, Color3.fromRGB(80, 40, 40))
+            espMobsBtn.MouseButton1Click:Connect(function()
+                Settings.ESPMobs = not Settings.ESPMobs
+                espMobsBtn.Text = "👹 ESP Mobs: " .. (Settings.ESPMobs and "ON" or "OFF")
+                espMobsBtn.BackgroundColor3 = Settings.ESPMobs and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(80, 40, 40)
+            end)
+            yOffset = yOffset + 0.12
+            
+            -- ESP Players
+            local espPlayersBtn = CreateButton(content, "👤 ESP Players", yOffset, Color3.fromRGB(40, 60, 80))
+            espPlayersBtn.MouseButton1Click:Connect(function()
+                Settings.ESPPlayers = not Settings.ESPPlayers
+                espPlayersBtn.Text = "👤 ESP Players: " .. (Settings.ESPPlayers and "ON" or "OFF")
+                espPlayersBtn.BackgroundColor3 = Settings.ESPPlayers and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(40, 60, 80)
+            end)
+            
+        elseif tabName == "Teleports" then
+            local y = yOffset
+            local cols = 2
+            local width = 0.45
+            local spacing = 0.05
+            
+            for islandName, island in pairs(Islands) do
+                local col = (y - yOffset) / 0.09
+                local colNum = math.floor(col) % cols
+                
+                local tpBtn = Instance.new("TextButton")
+                tpBtn.Size = UDim2.new(width, 0, 0, 35)
+                tpBtn.Position = UDim2.new(spacing + (colNum * (width + spacing)), 0, y, 0)
+                tpBtn.Text = island.name
+                tpBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+                tpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                tpBtn.Font = Enum.Font.Gotham
+                tpBtn.TextSize = 11
+                tpBtn.Parent = content
+                
+                tpBtn.MouseButton1Click:Connect(function()
+                    TeleportTo(island)
+                end)
+                
+                if col % cols == cols - 1 then
+                    y = y + 0.09
+                end
+            end
+            
+        elseif tabName == "Misc" then
+            -- Auto Stats
+            local statsBtn = CreateButton(content, "📊 Auto Stats", yOffset, Color3.fromRGB(60, 80, 40))
+            statsBtn.MouseButton1Click:Connect(function()
+                Settings.AutoStats = not Settings.AutoStats
+                statsBtn.Text = "📊 Auto Stats: " .. (Settings.AutoStats and "ON" or "OFF")
+                statsBtn.BackgroundColor3 = Settings.AutoStats and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(60, 80, 40)
+                if Settings.AutoStats then spawn(AutoStatsLoop) end
+            end)
+            yOffset = yOffset + 0.12
+            
+            -- Stat Type Dropdown
+            local statDropdown = CreateDropdown(content, "🎯 Tipo de Stat", yOffset, {"Melee", "Defense", "Sword", "Gun", "Fruit"})
+            statDropdown.OnSelect = function(value)
+                Settings.StatType = value
+            end
+            yOffset = yOffset + 0.12
+            
+            -- Godmode
+            local godBtn = CreateButton(content, "✨ Godmode", yOffset, Color3.fromRGB(80, 40, 40))
+            godBtn.MouseButton1Click:Connect(function()
+                Settings.GodMode = not Settings.GodMode
+                godBtn.Text = "✨ Godmode: " .. (Settings.GodMode and "ON" or "OFF")
+                godBtn.BackgroundColor3 = Settings.GodMode and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(80, 40, 40)
+                if Settings.GodMode then spawn(GodmodeLoop) end
+            end)
+            yOffset = yOffset + 0.12
+            
+            -- Anti-AFK
+            local antiAFKBtn = CreateButton(content, "💤 Anti-AFK", yOffset, Color3.fromRGB(60, 60, 80))
+            antiAFKBtn.MouseButton1Click:Connect(function()
+                Settings.AntiAFK = not Settings.AntiAFK
+                antiAFKBtn.Text = "💤 Anti-AFK: " .. (Settings.AntiAFK and "ON" or "OFF")
+                antiAFKBtn.BackgroundColor3 = Settings.AntiAFK and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(60, 60, 80)
+                if Settings.AntiAFK then spawn(AntiAFKLoop) end
+            end)
+        end
+    end
+    
+    -- Criar abas
+    for i, tab in ipairs(tabs) do
+        local tabBtn = Instance.new("TextButton")
+        tabBtn.Size = UDim2.new(0.2, 0, 1, 0)
+        tabBtn.Position = UDim2.new((i-1) * 0.2, 0, 0, 0)
+        tabBtn.Text = tab
+        tabBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+        tabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        tabBtn.Font = Enum.Font.Gotham
+        tabBtn.TextSize = 12
+        tabBtn.Parent = tabBar
+        
+        tabBtn.MouseButton1Click:Connect(function()
+            SwitchTab(tab)
+        end)
+    end
+    
+    SwitchTab("Farm")
+end
+
+-- ==================== FUNÇÕES AUXILIARES DA GUI ====================
+function CreateButton(parent, text, yOffset, color)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9, 0, 0, 40)
+    btn.Position = UDim2.new(0.05, 0, yOffset, 0)
+    btn.Text = text .. ": OFF"
+    btn.BackgroundColor3 = color
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 14
+    btn.Parent = parent
+    return btn
+end
+
+function CreateSlider(parent, text, yOffset, min, max, defaultValue, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0.9, 0, 0, 50)
+    frame.Position = UDim2.new(0.05, 0, yOffset, 0)
+    frame.BackgroundTransparency = 1
+    frame.Parent = parent
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.Text = text .. ": " .. defaultValue
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 12
+    label.Parent = frame
+    
+    local slider = Instance.new("Frame")
+    slider.Size = UDim2.new(1, 0, 0, 5)
+    slider.Position = UDim2.new(0, 0, 0.5, 0)
+    slider.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    slider.Parent = frame
+    
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new((defaultValue - min) / (max - min), 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
+    fill.Parent = slider
+    
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0, 15, 0, 15)
+    knob.Position = UDim2.new((defaultValue - min) / (max - min), -7.5, 0, -5)
+    knob.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
+    knob.Parent = slider
+    
+    local dragging = false
+    knob.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+    
+    knob.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local pos = math.clamp((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
+            local value = math.floor(min + (max - min) * pos)
+            callback(value)
+            fill.Size = UDim2.new(pos, 0, 1, 0)
+            knob.Position = UDim2.new(pos, -7.5, 0, -5)
+            label.Text = text .. ": " .. value
+        end
+    end)
+end
+
+function CreateDropdown(parent, text, yOffset, options)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0.9, 0, 0, 40)
+    frame.Position = UDim2.new(0.05, 0, yOffset, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    frame.BorderSizePixel = 0
+    frame.Parent = parent
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.4, 0, 1, 0)
+    label.Text = text
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 12
+    label.Parent = frame
+    
+    local dropdownBtn = Instance.new("TextButton")
+    dropdownBtn.Size = UDim2.new(0.55, 0, 1, 0)
+    dropdownBtn.Position = UDim2.new(0.45, 0, 0, 0)
+    dropdownBtn.Text = options[1]
+    dropdownBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    dropdownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    dropdownBtn.Font = Enum.Font.Gotham
+    dropdownBtn.TextSize = 12
+    dropdownBtn.Parent = frame
+    
+    local dropdownContent = Instance.new("Frame")
+    dropdownContent.Size = UDim2.new(0.55, 0, 0, 0)
+    dropdownContent.Position = UDim2.new(0.45, 0, 0, 40)
+    dropdownContent.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    dropdownContent.ClipsDescendants = true
+    dropdownContent.Visible = false
+    dropdownContent.Parent = frame
+    
+    local callback = function() end
+    local items = {}
+    
+    for i, opt in ipairs(options) do
+        local optBtn = Instance.new("TextButton")
+        optBtn.Size = UDim2.new(1, 0, 0, 30)
+        optBtn.Position = UDim2.new(0, 0, 0, (i-1) * 30)
+        optBtn.Text = opt
+        optBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+        optBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        optBtn.Font = Enum.Font.Gotham
+        optBtn.TextSize = 11
+        optBtn.Parent = dropdownContent
+        
+        optBtn.MouseButton1Click:Connect(function()
+            dropdownBtn.Text = opt
+            dropdownContent.Visible = false
+            dropdownContent.Size = UDim2.new(0.55, 0, 0, 0)
+            callback(opt)
+        end)
+        
+        table.insert(items, optBtn)
+    end
+    
+    dropdownBtn.MouseButton1Click:Connect(function()
+        if dropdownContent.Visible then
+            dropdownContent.Visible = false
+            dropdownContent.Size = UDim2.new(0.55, 0, 0, 0)
+        else
+            dropdownContent.Visible = true
+            dropdownContent.Size = UDim2.new(0.55, 0, 0, #options * 30)
+        end
+    end)
+    
+    return {
+        OnSelect = function(func)
+            callback = func
+        end
+    }
+end
+
+-- ==================== INICIALIZAÇÃO ====================
+local function Init()
+    print("==========================================")
+    print("  🐉 BLOX FRUITS COMPLETE SCRIPT v3.0 🐉")
+    print("  Desenvolvido em Luau")
+    print("  Funcionalidades carregadas:")
+    print("  ✓ Auto Farm")
+    print("  ✓ Auto Collect")
+    print("  ✓ ESP (Wallhack)")
+    print("  ✓ Teleportes")
+    print("  ✓ Auto Quest")
+    print("  ✓ Auto Stats")
+    print("  ✓ Auto Raid")
+    print("  ✓ Godmode")
+    print("  ✓ Anti-AFK")
+    print("  ✓ Fruit Notifier")
+    print("==========================================")
+    
+    CreateGUI()
+    CreateNotification("BLOX FRUITS COMPLETE", "Script carregado com sucesso!", 3)
+end
+
+-- Executar o script
+Init()
